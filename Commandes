@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>West Duck swing - Réservation repas</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #f59e0b;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text: #334155;
+            --border: #cbd5e1;
+            --truck-a: #eff6ff;
+            --truck-b: #fef2f2;
+            --warning-bg: #fffbeb;
+            --warning-border: #fef3c7;
+            --warning-text: #b45309;
+            --danger-bg: #fef2f2;
+            --danger-text: #991b1b;
+            --success-bg: #f0fdf4;
+            --success-border: #bbf7d0;
+            --success-text: #166534;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 2rem 1rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-text h1 { margin-bottom: 0.5rem; }
+
+        .admin-toggle-btn {
+            width: auto;
+            background-color: #475569;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.95rem;
+        }
+        .admin-toggle-btn.active {
+            background-color: #b91c1c;
+        }
+
+        .admin-only, .user-only { display: none; }
+        body.mode-user .user-only { display: block; }
+        body.mode-admin .admin-only { display: block; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+            height: fit-content;
+            margin-bottom: 2rem;
+        }
+
+        .card.edit-highlight {
+            border: 2px dashed var(--accent);
+            background: #fffbeb;
+        }
+
+        .card-header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card-header-actions h2 { border-bottom: none; margin-bottom: 0; }
+
+        h2 {
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .form-group { margin-bottom: 1.5rem; }
+
+        label.main-label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+        }
+
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .inline-radios { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+        .radio-tile {
+            flex: 1;
+            min-width: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .menu-container { display: flex; flex-direction: column; gap: 1rem; }
+
+        .truck-section { padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1rem;}
+        .truck-section.truck-0 { background-color: var(--truck-a); border-color: #bfdbfe; }
+        .truck-section.truck-1 { background-color: var(--truck-b); border-color: #fecaca; }
+
+        .truck-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.25rem;}
+        
+        .menu-type-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #475569;
+            margin: 0.75rem 0 0.25rem 0;
+            letter-spacing: 0.05em;
+        }
+
+        .menu-item-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            background: white;
+            padding: 0.6rem;
+            margin-bottom: 0.4rem;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .item-text-block { display: flex; flex-direction: column; }
+        .item-composition { font-size: 0.8rem; font-style: italic; color: #64748b; margin-top: 0.15rem; }
+        .menu-item-price { font-weight: bold; color: #16a34a; font-size: 0.95rem; }
+
+        button {
+            width: 100%;
+            padding: 0.85rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button.secondary { background-color: transparent; color: var(--primary); border: 1px solid var(--primary); margin-top: 1rem;}
+        button.print-section-btn { width: auto; background-color: #1e293b; font-size: 0.85rem; padding: 6px 12px; }
+        button.danger { background-color: transparent; color: #dc2626; border: 1px solid #dc2626; margin-top: 2rem; }
+        button.danger-filled { background-color: #dc2626; color: white; border: none; font-size: 0.9rem; padding: 0.6rem 1rem; }
+        
+        .btn-edit {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            width: auto;
+        }
+
+        .user-history-box {
+            background-color: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 0.75rem;
+        }
+        .user-history-title { font-size: 0.9rem; font-weight: bold; color: #475569; margin-bottom: 0.5rem; }
+        .user-history-list { list-style: none; font-size: 0.85rem; }
+        .user-history-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin-bottom: 0.4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .day-summary-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
+        .day-title { font-weight: 800; background: #e2e8f0; padding: 0.3rem 0.6rem; border-radius: 4px; margin-bottom: 0.75rem; }
+        .service-block { margin-left: 0.5rem; margin-bottom: 0.75rem; }
+        .service-title { font-weight: 700; color: #475569; font-size: 0.95rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.2rem; margin-bottom: 0.3rem; }
+        .meal-count-list { list-style: none; font-size: 0.9rem; padding-left: 0.5rem; }
+        .meal-count-list li { display: flex; justify-content: space-between; padding: 0.15rem 0; }
+        
+        .print-only-title { display: none; font-size: 1.4rem; font-weight: bold; margin-bottom: 1.5rem; border-bottom: 2px solid #000; padding-bottom: 0.5rem; text-align: center; }
+
+        .org-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        .det-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; align-items: flex-end; }
+        
+        .print-sheet { background: white; border: 2px dashed #94a3b8; padding: 2rem; border-radius: 8px; margin-top: 1.5rem; }
+        .print-header { text-align: center; border-bottom: 3px double var(--primary); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        .print-truck-title { font-size: 1.6rem; font-weight: bold; color: #000; }
+        .print-day-sub { font-size: 1.1rem; color: #475569; margin-top: 0.25rem; font-weight: 600; }
+        .print-service-section { margin-bottom: 2rem; background: #fff; padding: 1rem; border: 1px solid #cbd5e1; border-radius: 6px;}
+        .print-service-title { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05rem; background: #334155; color: white; padding: 0.4rem 0.6rem; border-radius: 4px; margin-bottom: 0.5rem; }
+        .print-meal-row { margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px dashed #e2e8f0; }
+        .print-meal-qty { font-size: 1.2rem; font-weight: bold; background: #e2e8f0; padding: 2px 10px; border-radius: 4px; }
+        .print-allergies-list { margin-top: 0.5rem; padding-left: 1.2rem; font-size: 0.9rem; color: #b45309; list-style: inside dashed; }
+
+        .details-split-container {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1rem;
+            align-items: flex-start;
+        }
+        
+        .details-left-side {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .details-right-side {
+            width: 380px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 900px) {
+            .details-split-container {
+                flex-direction: column;
+            }
+            .details-right-side {
+                width: 100%;
+            }
+        }
+
+        .details-table-wrapper { overflow-x: auto; }
+        .details-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9rem; }
+        .details-table th, .details-table td { padding: 0.75rem; border: 1px solid var(--border); text-align: left; }
+        .details-table th { background: #f8fafc; font-weight: 700; color: var(--primary); }
+        .details-table tr:nth-child(even) { background-color: #f8fafc; }
+        .text-right { text-align: right; }
+        .badge-total { font-weight: bold; color: #16a34a; }
+        .badge-role { display: inline-block; padding: 2px 6px; font-size: 0.75rem; font-weight: 600; border-radius: 4px; margin-left: 0.5rem; }
+        .badge-team { background-color: #e0f2fe; color: #0369a1; }
+        .badge-staff { background-color: #f3e8ff; color: #6b21a8; }
+
+        .absents-box { background: var(--danger-bg); border: 1px dashed #fca5a5; padding: 1rem; border-radius: 8px; margin-bottom: 0; height: auto; }
+        .absents-title { font-weight: bold; color: var(--danger-text); margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .absents-list { font-size: 0.9rem; color: #7f1d1d; padding-left: 1.2rem; margin: 0; }
+
+        .global-absents-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem; }
+        .global-absents-column { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 1rem; }
+        .global-absents-column h4 { font-size: 0.95rem; margin-bottom: 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--border); }
+        .global-absents-column.team h4 { color: #0369a1; }
+        .global-absents-column.staff h4 { color: #6b21a8; }
+        .global-absents-ul { font-size: 0.85rem; list-style-type: none; padding-left: 0; max-height: 150px; overflow-y: auto; }
+        .global-absents-ul li { padding: 0.2rem 0; border-bottom: 1px dashed #e2e8f0; }
+        .global-absents-ul li:last-child { border-bottom: none; }
+
+        #detailsResultZone { display: none; margin-top: 1.5rem; }
+
+        .csv-box { background: #f8fafc; border: 1px solid var(--border); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .csv-box input[type="file"] { margin-top: 0.5rem; font-size: 0.9rem; }
+        .csv-mode-selector { display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.85rem; background: #fff; padding: 0.4rem; border-radius: 4px; border: 1px solid #e2e8f0;}
+        .csv-mode-selector label { display: flex; align-items: center; gap: 0.25rem; cursor: pointer; font-weight: 500;}
+
+        button.print-inline-btn { width: auto; background-color: #16a34a; font-size: 0.85rem; padding: 6px 12px; margin-top: 1rem;}
+
+        .security-sub-section { background: white; border: 1px solid #fecaca; border-radius: 8px; padding: 1.2rem; margin-bottom: 1rem; }
+        .security-action-flex { display: flex; gap: 1rem; align-items: flex-end; margin-top: 0.5rem; flex-wrap: wrap; }
+        .security-action-flex div { flex: 1; min-width: 250px; }
+
+        .inline-notification {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            border: 1px solid var(--border);
+        }
+        .inline-notification.warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
+        .inline-notification.success { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+
+        @media print {
+            header, button, input, select, textarea, .csv-box, .org-controls, .det-controls, .user-only, .global-absents-search-box { 
+                display: none !important; 
+            }
+            
+            body { 
+                background: white !important; 
+                padding: 0 !important; 
+                color: #000 !important; 
+            }
+            .container { 
+                max-width: 100% !important; 
+                width: 100% !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+            }
+
+            body.print-active-dashboard .card:not(.dashboard-print-zone) { display: none !important; }
+            body.print-active-dashboard .dashboard-print-zone { display: block !important; box-shadow: none !important; padding: 0 !important; }
+            body.print-active-dashboard .dashboard-print-zone .card-header-actions { display: none !important; }
+            body.print-active-dashboard .dashboard-print-zone .print-only-title { display: block !important; }
+
+            body.print-active-organizer .card { display: none !important; }
+            body.print-active-organizer .organizer-print-zone { display: block !important; position: absolute; top: 0; left: 0; width: 100% !important; }
+            body.print-active-organizer .print-sheet { border: none !important; padding: 0 !important; margin: 0 0 30px 0 !important; page-break-after: always; }
+            body.print-active-organizer .print-service-section { border: 1px solid #000 !important; page-break-inside: avoid; }
+
+            body.print-active-details .card:not(.details-print-zone) { display: none !important; }
+            body.print-active-details .details-print-zone { display: block !important; box-shadow: none !important; padding: 0 !important; }
+            body.print-active-details .details-print-zone .card-header-actions { display: none !important; }
+            body.print-active-details .details-print-zone .print-only-title { display: block !important; }
+            #detailsResultZone { display: block !important; } 
+            .details-split-container { flex-direction: column !important; gap: 1.5rem !important; }
+            .details-right-side { width: 100% !important; }
+        }
+    </style>
+</head>
+<body class="mode-user">
+
+<div class="container">
+    <header>
+        <div class="header-text">
+            <h1>West Duck swing - Réservation repas</h1>
+            <p class="user-only" style="color: #64748b;">Sélectionnez votre groupe puis votre nom pour soumettre ou réajuster vos choix de repas.</p>
+            <p class="admin-only" style="color: #b45309; font-weight: bold;">🔴 Mode Administrateur Connecté — Contrôle Global</p>
+        </div>
+        <button type="button" id="adminToggleBtn" class="admin-toggle-btn" onclick="toggleAdminMode()">🔐 Mode Admin</button>
+    </header>
+
+    <div class="user-only">
+        <div id="formCard" class="card">
+            <h2 id="formTitle">Formulaire d'inscription</h2>
+            <form id="mainForm">
+                <div class="form-group">
+                    <label class="main-label">Vous êtes ?</label>
+                    <div class="inline-radios" style="max-width: 300px;">
+                        <label class="radio-tile">
+                            <input type="radio" name="userGroupFilter" value="Team" checked onchange="initParticipantsSelect()"> 🏃 Team
+                        </label>
+                        <label class="radio-tile">
+                            <input type="radio" name="userGroupFilter" value="Staff" onchange="initParticipantsSelect()"> 🛠️ Staff
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="main-label" for="usernameSelect">Nom & Prénom</label>
+                    <select id="usernameSelect" required></select>
+                    <div id="userHistoryContainer" style="display: none;"></div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="main-label">Sélectionnez le Jour</label>
+                        <select id="daySelect">
+                            <option value="Indifférent" disabled selected>-- Choisir --</option>
+                            <option value="Par jour" disabled>--- Par Jour ---</option>
+                            <option value="Vendredi">Vendredi</option>
+                            <option value="Samedi">Samedi</option>
+                            <option value="Dimanche">Dimanche</option>
+                            <option value="Lundi">Lundi</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="main-label">Moment de la journée</label>
+                        <div class="inline-radios">
+                            <label class="radio-tile">
+                                <input type="radio" name="period" value="Midi" checked> ☀️ Midi
+                            </label>
+                            <label class="radio-tile">
+                                <input type="radio" name="period" value="Soir"> 🌙 Soir
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="main-label">Heure du service souhaitée</label>
+                    <div class="inline-radios" id="timeOptionsContainer"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="main-label" style="color: var(--accent);">👉 Cochez vos repas ci-dessous :</label>
+                    <div class="menu-container" id="trucksMenuContainer"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="main-label" for="remarks">Remarques / Allergies</label>
+                    <textarea id="remarks" placeholder="Ex: Allergie aux arachides, végétarien... (Optionnel)"></textarea>
+                </div>
+
+                <button type="submit" id="submitBtn">Enregistrer les choix sélectionnés</button>
+                <button type="button" id="cancelEditBtn" class="secondary" style="display: none; margin-top: 0.5rem;" onclick="cancelEditing()">Annuler la modification</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ZONE ADMINISTRATEUR -->
+    <div class="admin-only">
+        <div class="card" style="border: 2px solid #3b82f6;">
+            <h2>📥 Importation de Données (Participants & Menus)</h2>
+            <p style="color: #64748b; margin-bottom: 1.5rem; font-size:0.9rem;">Importez vos fichiers pour initialiser ou compléter les listes.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="csv-box">
+                    <label class="main-label">1. Liste des Participants (.csv)</label>
+                    <span style="font-size:0.8rem; color:#64748b;">Format : <i>Nom Prenom;Groupe</i> (Team ou Staff)</span>
+                    <input type="file" id="csvParticipantsFile" accept=".csv">
+                    <div class="csv-mode-selector">
+                        <label><input type="radio" name="modeParticipants" value="replace" checked> 💥 Écraser l'ancienne liste</label>
+                        <label><input type="radio" name="modeParticipants" value="append"> ➕ Ajouter à la suite</label>
+                    </div>
+                </div>
+                
+                <div class="csv-box">
+                    <label class="main-label">2. Planning des Food Trucks (.csv)</label>
+                    <span style="font-size:0.8rem; color:#64748b;">Format : <i>Jour,Periode,Heures,FoodTruck,Type,Plat,Composition,Prix</i></span>
+                    <input type="file" id="csvMenusFile" accept=".csv">
+                    <div class="csv-mode-selector">
+                        <label><input type="radio" name="modeMenus" value="replace" checked> 💥 Écraser tout le planning</label>
+                        <label><input type="radio" name="modeMenus" value="append"> ➕ Ajouter/Compléter les menus</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+		
+		
+		<!-- === NOUVEAU BLOC : AJOUTER DES PERSONNES === -->
+		
+        <div class="card" style="border: 2px solid #3b82f6;">
+            <h2>👤 Ajouter des personnes</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="main-label">Nom & Prénom</label>
+                    <input type="text" id="newPersonName" placeholder="Ex: Jean Dupont">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="main-label">Groupe</label>
+                    <select id="newPersonRole">
+                        <option value="Team">Team</option>
+                        <option value="Staff">Staff</option>
+                    </select>
+                </div>
+                <button type="button" onclick="addPersonManually()" style="width: auto;">➕ Ajouter nom</button>
+            </div>
+            <button type="button" class="secondary" onclick="exportParticipantsCSV()">📥 Télécharger liste complète (CSV)</button>
+        </div>
+		
+		
+
+        <!-- BLOC GESTION MANUELLE DES PLATS -->
+        <div class="card" style="border: 2px solid var(--accent); background: #fefcfb;">
+            <h2>📝 Ajout & Modification Manuelle des Plats</h2>
+            <p style="color: #64748b; margin-bottom: 1.5rem; font-size:0.9rem;">Sélectionnez un plat existant pour le modifier/ajuster, OU laissez le sélecteur vide pour concevoir et injecter un tout nouveau plat oublié.</p>
+            
+            <div class="form-group">
+                <label class="main-label" for="editMenuSelector">Choisir un plat à modifier (Laisser vide pour une NOUVELLE CRÉATION 🆕)</label>
+                <select id="editMenuSelector" onchange="populateMenuEditFields()">
+                    <option value="" selected>✨ -- CRÉER UN NOUVEAU PLAT OUBLIÉ --</option>
+                </select>
+            </div>
+
+            <div id="editMenuImpactedUsers"></div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.2rem;">
+                <div class="form-group">
+                    <label class="main-label">Jour</label>
+                    <select id="editMenuDay">
+                        <option value="Vendredi">Vendredi</option>
+                        <option value="Samedi">Samedi</option>
+                        <option value="Dimanche">Dimanche</option>
+                        <option value="Lundi">Lundi</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="main-label">Période</label>
+                    <select id="editMenuPeriod">
+                        <option value="Midi">☀️ Midi</option>
+                        <option value="Soir">🌙 Soir</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="main-label">Heures du bloc (Séparer par |)</label>
+                    <input type="text" id="editMenuHours" placeholder="Ex: 11h30|12h30">
+                </div>
+                <div class="form-group">
+                    <label class="main-label">Nom du Food Truck</label>
+                    <input type="text" id="editMenuTruck" placeholder="Ex: Burger Station">
+                </div>
+                <div class="form-group">
+                    <label class="main-label">Type d'article</label>
+                    <select id="editMenuType">
+                        <option value="Entrée">Entrée</option>
+                        <option value="Plat" selected>Plat</option>
+                        <option value="Dessert">Dessert</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="main-label">Nom du Plat / Article</label>
+                    <input type="text" id="editMenuPlat" placeholder="Ex: Menu Burger Végé">
+                </div>
+                <div class="form-group">
+                    <label class="main-label">Prix unitaire (€)</label>
+                    <input type="number" id="editMenuPrix" step="0.01" placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="main-label">Composition détaillée du plat</label>
+                <textarea id="editMenuComp" rows="2" placeholder="Ingrédients, accompagnements..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                <button type="button" id="btnUpdateManual" style="background-color: var(--accent); flex: 1; min-width: 200px; display: none;" onclick="updateMenuManual()">🔄 Mettre à jour le plat choisi</button>
+                <button type="button" id="btnCreateManual" style="background-color: #16a34a; flex: 1; min-width: 200px;" onclick="createNewMenuManual()">🆕 Ajouter comme nouveau plat</button>
+                <button type="button" class="secondary" style="margin-top: 0; flex: 1; min-width: 200px;" onclick="exportMenusCSV()">📥 Exporter le catalogue actuel (CSV)</button>
+            </div>
+            
+            <div id="editMenuStatusLog"></div>
+        </div>
+
+        <!-- BLOC 1 : RÉSUMÉ QUANTITATIF GLOBAL -->
+        <div class="card dashboard-print-zone">
+            <div class="card-header-actions">
+                <h2>Résumé Global des Commandes (Quantitatifs)</h2>
+                <button type="button" class="print-section-btn" onclick="triggerSectionPrint('dashboard')">🖨️ Imprimer ce résumé</button>
+            </div>
+            <div class="print-only-title">Résumé Quantitatif Global des Commandes Food Trucks</div>
+            
+            <div class="global-absents-search-box" style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 1.2rem; margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.05rem; color: #b45309; margin-bottom: 0.75rem;">🔍 Lister le personnel sans commande pour un moment précis</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label class="main-label" style="font-size: 0.85rem;">Choisir le Jour</label>
+                        <select id="globalAbsentsDay" onchange="updateGlobalAbsentsLists()">
+                            <option value="Vendredi">Vendredi</option>
+                            <option value="Samedi">Samedi</option>
+                            <option value="Dimanche">Dimanche</option>
+                            <option value="Lundi">Lundi</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="main-label" style="font-size: 0.85rem;">Moment de la journée</label>
+                        <select id="globalAbsentsPeriod" onchange="updateGlobalAbsentsLists()">
+                            <option value="Midi">☀️ Midi</option>
+                            <option value="Soir">🌙 Soir</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="global-absents-grid">
+                    <div class="global-absents-column team">
+                        <h4>🏃 Absents Team (<span id="countGlobalAbsentTeam">0</span>)</h4>
+                        <ul id="listGlobalAbsentTeam" class="global-absents-ul"></ul>
+                    </div>
+                    <div class="global-absents-column staff">
+                        <h4>🛠️ Absents Staff (<span id="countGlobalAbsentStaff">0</span>)</h4>
+                        <ul id="listGlobalAbsentStaff" class="global-absents-ul"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dashboardContainer"></div>
+            <button type="button" class="secondary" onclick="exportCalculatedCSV()" style="margin-bottom: 0.5rem;">🚀 Exporter les ventes (CSV)</button>
+        </div>
+
+        <!-- BLOC 2 : DÉTAILS NOMINATIFS & RAPPORTS DES ABSENTS -->
+        <div class="card details-print-zone">
+            <div class="card-header-actions">
+                <h2>Détail Nominatif des Commandes & Absents</h2>
+                <button type="button" class="print-section-btn" onclick="triggerSectionPrint('details')">🖨️ Imprimer ce rapport</button>
+            </div>
+            <div class="print-only-title" id="printDetailsTitle">Rapport Nominatif des Commandes</div>
+            
+            <div class="det-controls">
+                <div>
+                    <label class="main-label">1. Filtrer par groupe</label>
+                    <select id="detGroupFilter" onchange="syncDetPersonDropdown(); resetDetailsDisplay();">
+                        <option value="Tous">👥 Tous (Team & Staff)</option>
+                        <option value="Team">🏃 Team Uniquement</option>
+                        <option value="Staff">🛠️ Staff Uniquement</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="main-label">2. Cibler une personne</label>
+                    <select id="detPersonFilter" onchange="resetDetailsDisplay();">
+                        <option value="Tous">👥 -- Afficher tout le monde --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="main-label">3. Filtrer par période</label>
+                    <select id="detPeriodFilter" onchange="resetDetailsDisplay();">
+                        <option value="Totalite">📋 Totalité du Séjour</option>
+                        <option value="Vendredi">Vendredi</option>
+                        <option value="Samedi">Samedi</option>
+                        <option value="Dimanche">Dimanche</option>
+                        <option value="Lundi">Lundi</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="main-label">4. Service (Si jour actif)</label>
+                    <select id="detServiceFilter" onchange="resetDetailsDisplay();">
+                        <option value="Tous">☀️ Midi & Soir 🌙</option>
+                        <option value="Midi">☀️ Midi Uniquement</option>
+                        <option value="Soir">🌙 Soir Uniquement</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="button" style="background-color: var(--primary); margin-bottom: 0.5rem; margin-top: 0.5rem;" onclick="processAndShowDetails()">🔍 Afficher le détail</button>
+
+            <div id="detailsResultZone">
+                <div class="details-split-container">
+                    <div class="details-left-side">
+                        <div class="details-table-wrapper">
+                            <table class="details-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom & Prénom</th>
+                                        <th>Détails des commandes (Jour - Moment [Type] Plat)</th>
+                                        <th class="text-right" style="width: 140px;">Prix Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detailsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="details-right-side" id="absentsContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOC 3 : MODE ORGANISATEUR -->
+        <div class="card">
+            <h2>🛠️ Mode Organisateur : Générer les feuilles de service pour l'impression</h2>
+            <p style="color: #64748b; margin-bottom: 1.5rem;">Préparez des fiches de synthèse prêtes à être imprimées pour chaque Food Truck.</p>
+            <div class="org-controls">
+                <div>
+                    <label class="main-label">1. Choisir le Jour</label>
+                    <select id="orgDaySelect">
+                        <option value="Vendredi">Vendredi</option>
+                        <option value="Samedi">Samedi</option>
+                        <option value="Dimanche">Dimanche</option>
+                        <option value="Lundi">Lundi</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="main-label">2. Choisir le moment</label>
+                    <select id="orgPeriodSelect">
+                        <option value="Midi">☀️ Midi</option>
+                        <option value="Soir">🌙 Soir</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" onclick="generatePrintSheets()">📄 Générer l'aperçu des fiches</button>
+        </div>
+
+        <div id="printableArea" class="organizer-print-zone"></div>
+
+        <!-- SÉCURITÉ -->
+        <div class="card" style="border: 2px solid #b91c1c; background: #fff5f5;">
+            <h2 style="color: #b91c1c; border-bottom-color: #fca5a5;">🔒 Zone de sécurité de la base de données</h2>
+            <p style="font-size: 0.9rem; color: #7f1d1d; margin-bottom: 1.5rem;">Actions critiques de nettoyage des données de l'application.</p>
+            
+            <div class="security-sub-section">
+                <h3 style="color: #0f172a; font-size: 1rem; margin-bottom: 0.3rem;">📋 1. Gestion des Réservations</h3>
+                <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.8rem;">Supprime uniquement les choix de repas effectués par les personnes.</p>
+                <button type="button" class="danger-filled" onclick="clearAllReservations()">Supprimer l'intégralité des réservations stockées 💥</button>
+            </div>
+
+            <div class="security-sub-section">
+                <h3 style="color: #0f172a; font-size: 1rem; margin-bottom: 0.3rem;">🚚 2. Gestion des Food Trucks & Menus</h3>
+                <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.8rem;">Videz le catalogue complet ou ciblez un plat en particulier pour voir l'impact.</p>
+                
+                <button type="button" class="danger-filled" onclick="clearAllMenus()">Supprimer l'intégralité des menus configurés 💥</button>
+                
+                <div style="margin-top: 1rem; border-top: 1px dashed #cbd5e1; padding-top: 1rem;">
+                    <label class="main-label" style="font-size: 0.85rem;">Ou choisir un seul plat précis à retirer :</label>
+                    <div class="security-action-flex">
+                        <div>
+                            <select id="deleteSingleMealSelect" onchange="checkDeleteMealImpact()">
+                                <option value="" disabled selected>-- Sélectionner un plat --</option>
+                            </select>
+                        </div>
+                        <button type="button" class="danger-filled" style="background-color: #e11d48; width: auto;" onclick="clearSingleMenu()">Supprimer ce plat ciblé 🗑️</button>
+                    </div>
+                    <div id="deleteSingleMealImpactContainer"></div>
+                </div>
+            </div>
+
+            <div class="security-sub-section">
+                <h3 style="color: #0f172a; font-size: 1rem; margin-bottom: 0.3rem;">👥 3. Gestion de la Liste des Personnes</h3>
+                <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.8rem;">Modifiez la base des inscrits autorisés sur la plateforme.</p>
+                
+                <button type="button" class="danger-filled" onclick="clearAllParticipants()">Supprimer l'intégralité des personnes 💥</button>
+                
+                <div style="margin-top: 1rem; border-top: 1px dashed #cbd5e1; padding-top: 1rem;">
+                    <label class="main-label" style="font-size: 0.85rem;">Ou cibler une seule personne à radier :</label>
+                    <div class="security-action-flex">
+                        <div>
+                            <select id="deleteSingleUserSelect">
+                                <option value="" disabled selected>-- Sélectionner un profil --</option>
+                            </select>
+                        </div>
+                        <button type="button" class="danger-filled" style="background-color: #e11d48; width: auto;" onclick="clearSingleParticipant()">Supprimer cette personne 🗑️</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ADMIN_PASSWORD = "admin123";
+    const TYPE_ORDER_MAPPING = { "Entrée": 1, "Plat": 2, "Dessert": 3 };
+
+    let participantsList = JSON.parse(localStorage.getItem('config_participants')) || [
+        { name: "Alice Martin", role: "Team" },
+        { name: "Lucas Bernard", role: "Staff" },
+        { name: "Chloé Petit", role: "Team" }
+    ];
+
+    let foodTrucksData = JSON.parse(localStorage.getItem('config_foodtrucks')) || {
+        "Vendredi": {
+            "Midi": { "hours": ["11h30", "12h30"], "trucks": [{ name: "Burger Station", meals: [{ name: "Menu Burger Classique", prix: 13.50, type: "Plat", composition: "Boeuf steak haché, frites maison, cheddar fondu" }, { name: "Cookie Chocolat", prix: 3.50, type: "Dessert", composition: "Pépites chocolat au lait et morceaux de noisettes" }] }] },
+            "Soir": { "hours": ["19h30", "21h30"], "trucks": [{ name: "Pizza Traditional", meals: [{ name: "Pizza Margherita", prix: 9.50, type: "Plat", composition: "Sauce tomate, mozzarella, basilic frais, huile d'olive" }] }] }
+        },
+        "Samedi": { "Midi": { "hours": ["12h00"], "trucks": [] }, "Soir": { "hours": ["20h00"], "trucks": [] } },
+        "Dimanche": { "Midi": { "hours": ["12h15"], "trucks": [] }, "Soir": { "hours": ["20h30"], "trucks": [] } },
+        "Lundi": { "Midi": { "hours": ["11h45"], "trucks": [] }, "Soir": { "hours": ["19h00"], "trucks": [] } }
+    };
+
+    let appVotes = JSON.parse(localStorage.getItem('trucksVotesData')) || [];
+    let isEditingMode = false;
+    let currentRole = "user";
+    let currentEditingMeal = null;
+
+    const usernameSelect = document.getElementById('usernameSelect');
+    const userHistoryContainer = document.getElementById('userHistoryContainer');
+    const daySelect = document.getElementById('daySelect');
+    const periodRadios = document.getElementsByName('period');
+    const timeOptionsContainer = document.getElementById('timeOptionsContainer');
+    const trucksMenuContainer = document.getElementById('trucksMenuContainer');
+    const dashboardContainer = document.getElementById('dashboardContainer');
+    const mainForm = document.getElementById('mainForm');
+    const adminToggleBtn = document.getElementById('adminToggleBtn');
+
+    function helperObtenirPrixEtConfigPlat(jour, moment, nomPlat) {
+        let result = { prix: 0, type: "Plat", composition: "" };
+        if (!foodTrucksData[jour] || !foodTrucksData[jour][moment]) return result;
+        
+        foodTrucksData[jour][moment].trucks.forEach(t => {
+            const mMatch = t.meals.find(m => m.name === nomPlat);
+            if (mMatch) {
+                result = { 
+                    prix: mMatch.prix, 
+                    type: mMatch.type || "Plat", 
+                    composition: mMatch.composition || ""
+                };
+            }
+        });
+        return result;
+    }
+
+    function toggleAdminMode() {
+        if (currentRole === "user") {
+            const pwd = prompt("Saisissez le mot de passe administrateur :");
+            if (pwd === ADMIN_PASSWORD) {
+                currentRole = "admin";
+                document.body.className = "mode-admin";
+                adminToggleBtn.innerText = "🔓 Quitter Admin";
+                adminToggleBtn.classList.add('active');
+                syncDetPersonDropdown();
+                resetDetailsDisplay();
+                updateInterface();
+            } else if (pwd !== null) {
+                alert("❌ Mot de passe erroné.");
+            }
+        } else {
+            currentRole = "user";
+            document.body.className = "mode-user";
+            adminToggleBtn.innerText = "🔐 Mode Admin";
+            adminToggleBtn.classList.remove('active');
+            cancelEditing();
+        }
+    }
+
+    function initParticipantsSelect(selectedUserToPreserve = null) {
+        const activeGroup = document.querySelector('input[name="userGroupFilter"]:checked').value;
+        usernameSelect.innerHTML = `<option value="" disabled ${!selectedUserToPreserve ? 'selected' : ''}>-- Choisir un nom (${activeGroup}) --</option>`;
+        
+        participantsList.forEach((p) => {
+            if(p.name && p.name.trim() !== "" && p.role === activeGroup) {
+                const opt = document.createElement('option');
+                opt.value = p.name.trim();
+                opt.innerText = p.name.trim();
+                if (selectedUserToPreserve && p.name.trim().toLowerCase() === selectedUserToPreserve.toLowerCase()) {
+                    opt.selected = true;
+                }
+                usernameSelect.appendChild(opt);
+            }
+        });
+        renderUserHistory();
+    }
+
+    function syncDetPersonDropdown() {
+        const groupFilter = document.getElementById('detGroupFilter').value;
+        const personSelect = document.getElementById('detPersonFilter');
+        const currentSelected = personSelect.value;
+
+        personSelect.innerHTML = '<option value="Tous">👥 -- Afficher tout le monde --</option>';
+
+        participantsList.forEach(p => {
+            if (p.name && p.name.trim() !== "") {
+                if (groupFilter === "Tous" || p.role === groupFilter) {
+                    const opt = document.createElement('option');
+                    opt.value = p.name.trim();
+                    opt.innerText = `${p.name.trim()} (${p.role})`;
+                    personSelect.appendChild(opt);
+                }
+            }
+        });
+
+        if (Array.from(personSelect.options).some(o => o.value === currentSelected)) {
+            personSelect.value = currentSelected;
+        } else {
+            personSelect.value = "Tous";
+        }
+    }
+
+    function resetDetailsDisplay() {
+        document.getElementById('detailsResultZone').style.display = "none";
+    }
+
+    function processAndShowDetails() {
+        renderDetailsAndAbsents();
+        document.getElementById('detailsResultZone').style.display = "block";
+    }
+
+    function updateGlobalAbsentsLists() {
+        if(currentRole !== "admin") return;
+
+        const targetDay = document.getElementById('globalAbsentsDay').value;
+        const targetPeriod = document.getElementById('globalAbsentsPeriod').value;
+        
+        const ulTeam = document.getElementById('listGlobalAbsentTeam');
+        const ulStaff = document.getElementById('listGlobalAbsentStaff');
+        const spanCountTeam = document.getElementById('countGlobalAbsentTeam');
+        const spanCountStaff = document.getElementById('countGlobalAbsentStaff');
+
+        ulTeam.innerHTML = '';
+        ulStaff.innerHTML = '';
+
+        let countTeam = 0;
+        let countStaff = 0;
+
+        participantsList.forEach(p => {
+            const nameClean = p.name.trim();
+            if(nameClean === "") return;
+
+            const hasOrdered = appVotes.some(v => v.name.toLowerCase() === nameClean.toLowerCase() && v.day === targetDay && v.period === targetPeriod);
+
+            if(!hasOrdered) {
+                const li = document.createElement('li');
+                li.innerText = `❌ ${nameClean}`;
+                
+                if(p.role === "Team") {
+                    ulTeam.appendChild(li);
+                    countTeam++;
+                } else if(p.role === "Staff") {
+                    ulStaff.appendChild(li);
+                    countStaff++;
+                }
+            }
+        });
+
+        spanCountTeam.innerText = countTeam;
+        spanCountStaff.innerText = countStaff;
+
+        if(countTeam === 0) ulTeam.innerHTML = '<li style="color:#166534; font-style:italic;">🎉 Tout le monde a commandé !</li>';
+        if(countStaff === 0) ulStaff.innerHTML = '<li style="color:#166534; font-style:italic;">🎉 Tout le monde a commandé !</li>';
+    }
+
+    function populateSecurityDropdowns() {
+        const mealSelect = document.getElementById('deleteSingleMealSelect');
+        const currentVal = mealSelect.value;
+        mealSelect.innerHTML = '<option value="" disabled selected>-- Sélectionner un plat --</option>';
+        
+        for (let day in foodTrucksData) {
+            for (let per in foodTrucksData[day]) {
+                const block = foodTrucksData[day][per];
+                if (block.trucks) {
+                    block.trucks.forEach(t => {
+                        t.meals.forEach(m => {
+                            const op = document.createElement('option');
+                            op.value = m.name;
+                            const heuresText = block.hours && block.hours.length > 0 ? ` [${block.hours.join('|')}]` : '';
+                            op.innerText = `${m.name} (${t.name} - ${day} - ${per}${heuresText})`;
+                            mealSelect.appendChild(op);
+                        });
+                    });
+                }
+            }
+        }
+        if(currentVal) {
+            mealSelect.value = currentVal;
+        } else {
+            document.getElementById('deleteSingleMealImpactContainer').innerHTML = '';
+        }
+
+        const userSelect = document.getElementById('deleteSingleUserSelect');
+        userSelect.innerHTML = '<option value="" disabled selected>-- Sélectionner un profil --</option>';
+        participantsList.forEach(p => {
+            const op = document.createElement('option');
+            op.value = p.name;
+            op.innerText = `${p.name} (${p.role})`;
+            userSelect.appendChild(op);
+        });
+    }
+
+    function checkDeleteMealImpact() {
+        const mealSelect = document.getElementById('deleteSingleMealSelect');
+        const impactContainer = document.getElementById('deleteSingleMealImpactContainer');
+        const targetMeal = mealSelect.value;
+        
+        if (!targetMeal) { impactContainer.innerHTML = ''; return; }
+
+        const impactedPeople = Array.from(new Set(
+            appVotes.filter(v => v.mealName === targetMeal).map(v => v.name)
+        ));
+
+        if (impactedPeople.length > 0) {
+            impactContainer.innerHTML = `
+                <div class="inline-notification warning">
+                    <strong>⚠️ Attention — Ce plat est actuellement sélectionné par ${impactedPeople.length} utilisateur(s) :</strong><br>
+                    <span style="font-size:0.85rem; word-break: break-all;">${impactedPeople.join(', ')}</span><br>
+                    <small style="display:block; margin-top:0.25rem; font-style:italic;">Si vous supprimez ce plat, leurs choix associés seront nettoyés immédiatement.</small>
+                </div>
+            `;
+        } else {
+            impactContainer.innerHTML = `
+                <div class="inline-notification success">
+                    🎉 Aucun utilisateur n'a commandé ce plat. Il peut être retiré en toute sécurité.
+                </div>
+            `;
+        }
+    }
+
+    function populateMenuEditSelector() {
+        const select = document.getElementById('editMenuSelector');
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">✨ -- CRÉER UN NOUVEAU PLAT OUBLIÉ --</option>';
+        
+        for (let day in foodTrucksData) {
+            for (let per in foodTrucksData[day]) {
+                if (foodTrucksData[day][per].trucks) {
+                    foodTrucksData[day][per].trucks.forEach(t => {
+                        t.meals.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = `${day}|||${per}|||${t.name}|||${m.name}`;
+                            opt.innerText = `[${day} - ${per}] ${t.name} ➔ ${m.name}`;
+                            select.appendChild(opt);
+                        });
+                    });
+                }
+            }
+        }
+        if(currentVal) select.value = currentVal;
+    }
+
+    function populateMenuEditFields() {
+        const select = document.getElementById('editMenuSelector');
+        const logBox = document.getElementById('editMenuStatusLog');
+        const listContainer = document.getElementById('editMenuImpactedUsers');
+        const btnUpdate = document.getElementById('btnUpdateManual');
+        const btnCreate = document.getElementById('btnCreateManual');
+        
+        logBox.innerHTML = ''; 
+        
+        if (!select.value) {
+            currentEditingMeal = null;
+            listContainer.innerHTML = '';
+            btnUpdate.style.display = "none";
+            btnCreate.style.display = "block";
+            
+            document.getElementById('editMenuHours').value = "";
+            document.getElementById('editMenuTruck').value = "";
+            document.getElementById('editMenuPlat').value = "";
+            document.getElementById('editMenuPrix').value = "";
+            document.getElementById('editMenuComp').value = "";
+            return;
+        }
+        
+        btnUpdate.style.display = "block";
+        btnCreate.style.display = "none";
+        
+        const [day, per, truckName, mealName] = select.value.split('|||');
+        const block = foodTrucksData[day][per];
+        const truck = block.trucks.find(t => t.name === truckName);
+        const meal = truck.meals.find(m => m.name === mealName);
+        
+        currentEditingMeal = { originalDay: day, originalPeriod: per, originalTruck: truckName, originalMealName: mealName };
+        
+        document.getElementById('editMenuDay').value = day;
+        document.getElementById('editMenuPeriod').value = per;
+        document.getElementById('editMenuHours').value = block.hours.join('|');
+        document.getElementById('editMenuTruck').value = truckName;
+        document.getElementById('editMenuType').value = meal.type || "Plat";
+        document.getElementById('editMenuPlat').value = meal.name;
+        document.getElementById('editMenuPrix').value = meal.prix;
+        document.getElementById('editMenuComp').value = meal.composition || "";
+        
+        const impacted = appVotes.filter(v => v.day === day && v.period === per && v.truckName === truckName && v.mealName === mealName);
+        
+        if (impacted.length > 0) {
+            const uniqueNames = Array.from(new Set(impacted.map(v => v.name)));
+            listContainer.innerHTML = `
+                <div class="absents-box" style="background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); margin-bottom:1rem; margin-top:0.5rem;">
+                    <strong>⚠️ Personnes impactées par ce plat (${uniqueNames.length}) :</strong><br>
+                    <span style="font-size:0.85rem;">${uniqueNames.join(', ')}</span><br>
+                    <small style="font-style:italic; display:block; margin-top:0.25rem;">Leurs choix suivront automatiquement les modifications d'horaires, de nom ou de camion.</small>
+                </div>
+            `;
+        } else {
+            listContainer.innerHTML = `
+                <div class="absents-box" style="background: #f0fdf4; border-color: #bbf7d0; color: #166534; margin-bottom:1rem; margin-top:0.5rem;">
+                    🎉 Aucun utilisateur n'a commandé ce plat pour le moment.
+                </div>
+            `;
+        }
+    }
+
+    function createNewMenuManual() {
+        const day = document.getElementById('editMenuDay').value;
+        const period = document.getElementById('editMenuPeriod').value;
+        const hoursInput = document.getElementById('editMenuHours').value.split('|').map(h => h.trim()).filter(h => h !== "");
+        const truckName = document.getElementById('editMenuTruck').value.trim();
+        const mealType = document.getElementById('editMenuType').value;
+        const mealName = document.getElementById('editMenuPlat').value.trim();
+        const price = parseFloat(document.getElementById('editMenuPrix').value) || 0.0;
+        const comp = document.getElementById('editMenuComp').value.trim();
+
+        if (!truckName || !mealName || hoursInput.length === 0) {
+            alert("❌ Impossible d'ajouter le plat : veuillez spécifier au moins un Food Truck, un nom de plat et une tranche horaire.");
+            return;
+        }
+
+        if (!foodTrucksData[day]) foodTrucksData[day] = {};
+        if (!foodTrucksData[day][period]) {
+            foodTrucksData[day][period] = { hours: [], trucks: [] };
+        }
+
+        hoursInput.forEach(h => {
+            if(!foodTrucksData[day][period].hours.includes(h)) {
+                foodTrucksData[day][period].hours.push(h);
+            }
+        });
+
+        let targetTruck = foodTrucksData[day][period].trucks.find(t => t.name === truckName);
+        if(!targetTruck) {
+            targetTruck = { name: truckName, meals: [] };
+            foodTrucksData[day][period].trucks.push(targetTruck);
+        }
+
+        if(targetTruck.meals.some(m => m.name.toLowerCase() === mealName.toLowerCase())) {
+            alert("❌ Un plat portant le même nom existe déjà dans ce Food Truck.");
+            return;
+        }
+
+        targetTruck.meals.push({ name: mealName, prix: price, type: mealType, composition: comp });
+        localStorage.setItem('config_foodtrucks', JSON.stringify(foodTrucksData));
+
+        // MODIFICATION ICI : On vide uniquement les champs du plat pour enchaîner les saisies rapidement
+        document.getElementById('editMenuPlat').value = "";
+        document.getElementById('editMenuPrix').value = "";
+        document.getElementById('editMenuComp').value = "";
+
+        updateInterface();
+
+        const logBox = document.getElementById('editMenuStatusLog');
+        logBox.innerHTML = `
+            <div class="inline-notification success" style="margin-top:1.5rem;">
+                🆕 Nouveau plat <strong>"${mealName}"</strong> ajouté avec succès au catalogue du <strong>${day} (${period})</strong> !
+            </div>
+        `;
+    }
+
+    function updateMenuManual() {
+        if (!currentEditingMeal) { alert("Veuillez d'abord sélectionner un plat à modifier."); return; }
+        
+        const newDay = document.getElementById('editMenuDay').value;
+        const newPeriod = document.getElementById('editMenuPeriod').value;
+        const newHours = document.getElementById('editMenuHours').value.split('|').map(h => h.trim()).filter(h => h !== "");
+        const newTruck = document.getElementById('editMenuTruck').value.trim();
+        const newType = document.getElementById('editMenuType').value;
+        const newPlat = document.getElementById('editMenuPlat').value.trim();
+        const newPrix = parseFloat(document.getElementById('editMenuPrix').value) || 0.0;
+        const newComp = document.getElementById('editMenuComp').value.trim();
+        
+        if (!newTruck || !newPlat || newHours.length === 0) {
+            alert("❌ Erreur : Le nom du camion, le nom du plat et les heures ne peuvent pas être vides.");
+            return;
+        }
+
+        const { originalDay, originalPeriod, originalTruck, originalMealName } = currentEditingMeal;
+
+        if(foodTrucksData[originalDay] && foodTrucksData[originalDay][originalPeriod]) {
+            let tIdx = foodTrucksData[originalDay][originalPeriod].trucks.findIndex(t => t.name === originalTruck);
+            if(tIdx !== -1) {
+                foodTrucksData[originalDay][originalPeriod].trucks[tIdx].meals = foodTrucksData[originalDay][originalPeriod].trucks[tIdx].meals.filter(m => m.name !== originalMealName);
+                if(foodTrucksData[originalDay][originalPeriod].trucks[tIdx].meals.length === 0) {
+                    foodTrucksData[originalDay][originalPeriod].trucks.splice(tIdx, 1);
+                }
+            }
+        }
+
+        if (!foodTrucksData[newDay]) foodTrucksData[newDay] = {};
+        if (!foodTrucksData[newDay][newPeriod]) {
+            foodTrucksData[newDay][newPeriod] = { hours: [], trucks: [] };
+        }
+        
+        foodTrucksData[newDay][newPeriod].hours = newHours;
+        
+        let targetTruck = foodTrucksData[newDay][newPeriod].trucks.find(t => t.name === newTruck);
+        if(!targetTruck) {
+            targetTruck = { name: newTruck, meals: [] };
+            foodTrucksData[newDay][newPeriod].trucks.push(targetTruck);
+        }
+        targetTruck.meals.push({ name: newPlat, prix: newPrix, type: newType, composition: newComp });
+
+        let impactedUsers = [];
+        appVotes.forEach(v => {
+            if(v.day === originalDay && v.period === originalPeriod && v.truckName === originalTruck && v.mealName === originalMealName) {
+                v.day = newDay;
+                v.period = newPeriod;
+                v.truckName = newTruck;
+                v.mealName = newPlat;
+                if(!newHours.includes(v.time)) {
+                    v.time = newHours[0] || "12h00";
+                }
+                impactedUsers.push(v.name);
+            }
+        });
+
+        localStorage.setItem('config_foodtrucks', JSON.stringify(foodTrucksData));
+        localStorage.setItem('trucksVotesData', JSON.stringify(appVotes));
+
+        currentEditingMeal = null;
+        document.getElementById('editMenuSelector').value = "";
+        document.getElementById('editMenuImpactedUsers').innerHTML = "";
+        document.getElementById('editMenuTruck').value = "";
+        document.getElementById('editMenuPlat').value = "";
+        document.getElementById('editMenuPrix').value = "";
+        document.getElementById('editMenuComp').value = "";
+        document.getElementById('editMenuHours').value = "";
+        document.getElementById('btnUpdateManual').style.display = "none";
+        document.getElementById('btnCreateManual').style.display = "block";
+
+        cancelEditing();
+        updateInterface();
+
+        const logBox = document.getElementById('editMenuStatusLog');
+        if (impactedUsers.length > 0) {
+            const uniqueImpacted = Array.from(new Set(impactedUsers));
+            logBox.innerHTML = `
+                <div class="inline-notification warning" style="margin-top:1.5rem;">
+                    <strong>✅ Plat modifié avec succès !</strong><br>
+                    Les choix des participants suivants ont été mis à jour automatiquement (${uniqueImpacted.length}) :<br>
+                    <span style="font-size:0.85rem;">${uniqueImpacted.join(', ')}</span>
+                </div>
+            `;
+        } else {
+            logBox.innerHTML = `
+                <div class="inline-notification success" style="margin-top:1.5rem;">
+                    ✅ Le plat a été modifié avec succès ! (Aucun participant n'avait réservé ce plat).
+                </div>
+            `;
+        }
+    }
+
+    function exportMenusCSV() {
+        let csvContent = "\uFEFF";
+        csvContent += "Jour;Periode;Heures;FoodTruck;Type;Plat;Composition;Prix\n";
+        
+        for (let day in foodTrucksData) {
+            for (let per in foodTrucksData[day]) {
+                const block = foodTrucksData[day][per];
+                const hoursPipe = block.hours.join('|');
+                if(block.trucks) {
+                    block.trucks.forEach(t => {
+                        t.meals.forEach(m => {
+                            const cleanComp = (m.composition || "").replace(/"/g, '""');
+                            csvContent += `"${day}";"${per}";"${hoursPipe}";"${t.name}";"${m.type || 'Plat'}";"${m.name}";"${cleanComp}";${m.prix}\n`;
+                        });
+                    });
+                }
+            }
+        }
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "planning_foodtrucks_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    usernameSelect.addEventListener('change', () => renderUserHistory());
+    daySelect.addEventListener('change', () => { renderDynamicFields(); });
+    periodRadios.forEach(radio => radio.addEventListener('change', () => { renderDynamicFields(); }));
+
+    document.getElementById('csvParticipantsFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const mode = document.querySelector('input[name="modeParticipants"]:checked').value;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const text = evt.target.result;
+            const lines = text.split(/\r?\n/);
+            let temporaryList = (mode === 'append') ? [...participantsList] : [];
+            
+            lines.forEach((line, index) => {
+                if (index === 0 || line.trim() === "") return;
+                let separator = line.includes(';') ? ';' : ',';
+                let columns = line.split(separator).map(c => c.replace(/"/g, '').trim());
+                
+                if (columns[0] && columns[0] !== "") {
+                    let name = columns[0];
+                    let roleRaw = columns[1] ? columns[1].toLowerCase() : "team";
+                    let roleClean = roleRaw.includes("staff") ? "Staff" : "Team";
+                    
+                    if (mode === 'append') {
+                        let exists = temporaryList.some(p => p.name.toLowerCase() === name.toLowerCase() && p.role === roleClean);
+                        if (!exists) temporaryList.push({ name: name, role: roleClean });
+                    } else {
+                        temporaryList.push({ name: name, role: roleClean });
+                    }
+                }
+            });
+            
+            if(temporaryList.length > 0) {
+                participantsList = temporaryList.sort((a, b) => a.name.localeCompare(b.name));
+                localStorage.setItem('config_participants', JSON.stringify(participantsList));
+                initParticipantsSelect();
+                if(currentRole === "admin") {
+                    syncDetPersonDropdown();
+                    resetDetailsDisplay();
+                    updateInterface();
+                }
+                alert(mode === 'append' ? "➕ Nouveaux participants ajoutés avec succès !" : "✅ Liste des participants écrasée et mise à jour !");
+            }
+            e.target.value = '';
+        };
+        reader.readAsText(file, "UTF-8");
+    });
+
+    document.getElementById('csvMenusFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const mode = document.querySelector('input[name="modeMenus"]:checked').value;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const text = evt.target.result;
+            const lines = text.split(/\r?\n/);
+            
+            let tempStructure;
+            if (mode === 'append') {
+                tempStructure = JSON.parse(JSON.stringify(foodTrucksData));
+            } else {
+                tempStructure = {
+                    "Vendredi": {"Midi": {"hours": [], "trucks": []}, "Soir": {"hours": [], "trucks": []}},
+                    "Samedi": {"Midi": {"hours": [], "trucks": []}, "Soir": {"hours": [], "trucks": []}},
+                    "Dimanche": {"Midi": {"hours": [], "trucks": []}, "Soir": {"hours": [], "trucks": []}},
+                    "Lundi": {"Midi": {"hours": [], "trucks": []}, "Soir": {"hours": [], "trucks": []}}
+                };
+            }
+
+            lines.forEach((line, index) => {
+                if (index === 0 || line.trim() === "") return;
+                let separator = line.includes(';') ? ';' : ',';
+                let matches = []; let match;
+                let regex = new RegExp(`([^"${separator}]+)|"([^"]*)"|(?<=${separator})`, 'g');
+                while ((match = regex.exec(line)) !== null) { matches.push(match[1] || match[2] || ""); }
+                let columns = matches.map(c => c.trim());
+                
+                if(columns.length >= 6) {
+                    let day = columns[0]; let period = columns[1]; let hoursArray = columns[2].split('|');
+                    let truckName = columns[3]; let mealType = columns[4] ? columns[4] : "Plat";
+                    let mealName = columns[5]; let composition = columns[6] ? columns[6] : "";
+                    let price = columns[7] ? parseFloat(columns[7].replace(',', '.')) : 0.0;
+                    
+                    if(tempStructure[day] && tempStructure[day][period]) {
+                        if (mode === 'append') {
+                            hoursArray.forEach(h => {
+                                if(!tempStructure[day][period].hours.includes(h)) tempStructure[day][period].hours.push(h);
+                            });
+                        } else {
+                            tempStructure[day][period].hours = hoursArray;
+                        }
+
+                        let truck = tempStructure[day][period].trucks.find(t => t.name === truckName);
+                        if(!truck) { 
+                            truck = { name: truckName, meals: [] }; 
+                            tempStructure[day][period].trucks.push(truck); 
+                        }
+                        
+                        let mealExists = truck.meals.some(m => m.name === mealName);
+                        if (!mealExists) {
+                            truck.meals.push({ name: mealName, prix: price, type: mealType, composition: composition });
+                        }
+                    }
+                }
+            });
+            
+            foodTrucksData = tempStructure;
+            localStorage.setItem('config_foodtrucks', JSON.stringify(foodTrucksData));
+            cancelEditing();
+            updateInterface();
+            alert(mode === 'append' ? "➕ Planning mis à jour et complété !" : "✅ Tout le planning a été écrasé et remplacé !");
+            e.target.value = '';
+        };
+        reader.readAsText(file, "UTF-8");
+    });
+
+    function renderUserHistory() {
+        const selectedUser = usernameSelect.value;
+        if (!selectedUser) { userHistoryContainer.style.display = "none"; return; }
+        const userVotes = appVotes.filter(v => v.name.toLowerCase() === selectedUser.toLowerCase());
+        if (userVotes.length === 0) {
+            userHistoryContainer.innerHTML = `<div class="user-history-box"><div class="user-history-title">✨ Vos choix enregistrés :</div><p style="font-size:0.8rem; color:#94a3b8; font-style:italic;">Aucun repas commandé pour le moment.</p></div>`;
+            userHistoryContainer.style.display = "block"; return;
+        }
+        const grouped = {};
+        userVotes.forEach(v => {
+            const key = `${v.day}📊${v.period}`;
+            if (!grouped[key]) { grouped[key] = { day: v.day, period: v.period, time: v.time, meals: [] }; }
+            const conf = helperObtenirPrixEtConfigPlat(v.day, v.period, v.mealName);
+            grouped[key].meals.push(`[${conf.type}] ${v.truckName} - ${v.mealName} (${conf.prix.toFixed(2)} €)`);
+        });
+        let historyHtml = `<div class="user-history-box"><div class="user-history-title">🍴 Vos choix enregistrés (${selectedUser}) :</div><ul class="user-history-list">`;
+        for (let k in grouped) {
+            const item = grouped[k]; const encodedName = encodeURIComponent(selectedUser);
+            historyHtml += `<li class="user-history-item"><div><strong>${item.day} — ${item.period} (${item.time})</strong><br><span style="color:#64748b;">${item.meals.join(', ')}</span></div><button type="button" class="btn-edit" style="font-size:0.7rem; padding:3px 6px;" onclick="startEdit('${encodedName}', '${item.day}', '${item.period}')">⚙️ Modifier</button></li>`;
+        }
+        historyHtml += `</ul></div>`;
+        userHistoryContainer.innerHTML = historyHtml;
+        userHistoryContainer.style.display = "block";
+    }
+
+    function renderDynamicFields(callback) {
+        const selectedDay = daySelect.value;
+        if (selectedDay === "Indifférent" || !selectedDay) return;
+        const selectedPeriod = document.querySelector('input[name="period"]:checked').value;
+        const currentConfig = foodTrucksData[selectedDay][selectedPeriod];
+        timeOptionsContainer.innerHTML = '';
+        if(!currentConfig || !currentConfig.hours || currentConfig.hours.length === 0) {
+            trucksMenuContainer.innerHTML = '<p style="color:#dc2626; font-style:italic;">Aucun service configuré pour ce moment.</p>'; return;
+        }
+        currentConfig.hours.forEach((hour, idx) => {
+            timeOptionsContainer.innerHTML += `<label class="radio-tile"><input type="radio" name="serviceTime" value="${hour}" ${idx === 0 ? 'checked' : ''}> ${hour}</label>`;
+        });
+        trucksMenuContainer.innerHTML = '';
+        currentConfig.trucks.forEach((truck, truckIdx) => {
+            let categories = { "Entrée": [], "Plat": [], "Dessert": [] };
+            truck.meals.forEach((meal) => { let t = meal.type || "Plat"; if (!categories[t]) categories[t] = []; categories[t].push(meal); });
+            let mealsHtml = '';
+            ["Entrée", "Plat", "Dessert"].forEach(typeLabel => {
+                if(categories[typeLabel] && categories[typeLabel].length > 0) {
+                    mealsHtml += `<div class="menu-type-title">${typeLabel}s</div>`;
+                    categories[typeLabel].forEach(meal => {
+                        let compHtml = meal.composition ? `<span class="item-composition">${meal.composition}</span>` : '';
+                        mealsHtml += `<label class="menu-item-label"><div class="item-left" style="display:flex; align-items:flex-start; gap:0.5rem;"><input type="checkbox" name="selectedMeals" value="${truck.name}:::${meal.name}" style="margin-top:0.25rem;"><div class="item-text-block"><span style="font-weight:500;">${meal.name}</span>${compHtml}</div></div><span class="menu-item-price">${meal.prix.toFixed(2)} €</span></label>`;
+                    });
+                }
+            });
+            trucksMenuContainer.innerHTML += `<div class="truck-section truck-${truckIdx}"><div class="truck-name">🚚 Food Truck : ${truck.name}</div>${mealsHtml}</div>`;
+        });
+        if (callback) callback();
+    }
+
+    mainForm.addEventListener('submit', function(e) {
+        e.preventDefault(); const name = usernameSelect.value; if (!name) return;
+        const day = daySelect.value; if (day === "Indifférent") return;
+        const period = document.querySelector('input[name="period"]:checked').value;
+        const time = document.querySelector('input[name="serviceTime"]:checked').value;
+        const remarks = document.getElementById('remarks').value.trim();
+        const checkedBoxes = document.querySelectorAll('input[name="selectedMeals"]:checked');
+        if (checkedBoxes.length === 0) { alert("Veuillez cocher au moins un repas."); return; }
+        appVotes = appVotes.filter(v => !(v.name.toLowerCase() === name.toLowerCase() && v.day === day && v.period === period));
+        checkedBoxes.forEach(box => {
+            const parts = box.value.split(':::');
+            appVotes.push({ name, day, period, time, truckName: parts[0], mealName: parts[1], remarks });
+        });
+        localStorage.setItem('trucksVotesData', JSON.stringify(appVotes));
+        if(isEditingMode) { cancelEditing(); } 
+        else {
+            document.getElementById('remarks').value = '';
+            document.querySelectorAll('input[name="selectedMeals"]:checked').forEach(el => el.checked = false);
+        }
+        renderUserHistory(); alert("Réservation enregistrée !");
+    });
+
+    function startEdit(encodedName, day, period) {
+        currentRole = "user"; document.body.className = "mode-user";
+        adminToggleBtn.innerText = "🔐 Mode Admin"; adminToggleBtn.classList.remove('active');
+        const targetName = decodeURIComponent(encodedName);
+        
+        const matchedParticipant = participantsList.find(p => p.name.trim().toLowerCase() === targetName.toLowerCase());
+        if (matchedParticipant) {
+            document.querySelector(`input[name="userGroupFilter"][value="${matchedParticipant.role}"]`).checked = true;
+        }
+
+        initParticipantsSelect(targetName);
+
+        const userOrders = appVotes.filter(v => v.name.toLowerCase() === targetName.toLowerCase() && v.day === day && v.period === period);
+        if(userOrders.length === 0) return;
+        const baseOrder = userOrders[0];
+        
+        document.getElementById('remarks').value = baseOrder.remarks; daySelect.value = baseOrder.day;
+        document.querySelector(`input[name="period"][value="${baseOrder.period}"]`).checked = true;
+        renderDynamicFields(() => {
+            document.querySelector(`input[name="serviceTime"][value="${baseOrder.time}"]`).checked = true;
+            userOrders.forEach(order => {
+                const checkboxValue = `${order.truckName}:::${order.mealName}`;
+                const checkbox = document.querySelector(`input[name="selectedMeals"][value="${checkboxValue}"]`);
+                if(checkbox) checkbox.checked = true;
+            });
+        });
+        isEditingMode = true; document.getElementById('formCard').classList.add('edit-highlight');
+        document.getElementById('formTitle').innerText = "✏️ Modifier votre choix de repas";
+        document.getElementById('submitBtn').innerText = "Mettre à jour l'inscription";
+        document.getElementById('cancelEditBtn').style.display = "block";
+    }
+
+    function cancelEditing() {
+        isEditingMode = false; document.getElementById('formCard').classList.remove('edit-highlight');
+        document.getElementById('formTitle').innerText = "Formulaire d'inscription";
+        document.getElementById('submitBtn').innerText = "Enregistrer les choix sélectionnés";
+        document.getElementById('cancelEditBtn').style.display = "none";
+        document.getElementById('remarks').value = ''; daySelect.value = "Indifférent";
+        trucksMenuContainer.innerHTML = ''; timeOptionsContainer.innerHTML = ''; 
+        initParticipantsSelect();
+    }
+
+    function updateInterface() {
+        if(currentRole !== "admin") return;
+        
+        dashboardContainer.innerHTML = '';
+        const structureCalcul = {};
+        for (let j in foodTrucksData) {
+            structureCalcul[j] = {};
+            const allHoursOfDay = foodTrucksData[j]["Midi"].hours.concat(foodTrucksData[j]["Soir"].hours);
+            allHoursOfDay.forEach(h => { structureCalcul[j][h] = {}; });
+        }
+        appVotes.forEach(v => {
+            const conf = helperObtenirPrixEtConfigPlat(v.day, v.period, v.mealName);
+            const displayMealString = `[${conf.type}] ${v.truckName} - ${v.mealName}`;
+            if(structureCalcul[v.day] && structureCalcul[v.day][v.time]) {
+                if (!structureCalcul[v.day][v.time][displayMealString]) {
+                    structureCalcul[v.day][v.time][displayMealString] = { quantite: 0, prixU: conf.prix };
+                }
+                structureCalcul[v.day][v.time][displayMealString].quantite += 1;
+            }
+        });
+        const orderedDays = ["Vendredi", "Samedi", "Dimanche", "Lundi"];
+        orderedDays.forEach(day => {
+            if (!structureCalcul[day]) return;
+            let dayHtml = `<div class="day-summary-box"><div class="day-title">📅 ${day}</div>`;
+            let emptyDay = true;
+            const sortedHours = Object.keys(structureCalcul[day]).sort((a, b) => parseInt(a) - parseInt(b));
+            sortedHours.forEach(time => {
+                const mealsOrdered = structureCalcul[day][time];
+                if (Object.keys(mealsOrdered).length > 0) {
+                    emptyDay = false;
+                    dayHtml += `<div class="service-block"><div class="service-title">⏱️ Service de ${time}</div><ul class="meal-count-list">`;
+                    let totalService = 0; let budgetService = 0;
+                    for (let m in mealsOrdered) {
+                        const qte = mealsOrdered[m].quantite; const pU = mealsOrdered[m].prixU; const sousTotal = qte * pU;
+                        dayHtml += `<li><span>${m} (x${qte})</span><strong>${sousTotal.toFixed(2)} €</strong></li>`;
+                        totalService += qte; budgetService += sousTotal;
+                    }
+                    dayHtml += `<li style="font-weight:bold; color:var(--primary); border-top:1px dashed #cbd5e1; margin-top:5px; padding-top:5px;"><span>Total (${totalService} articles) :</span><span style="color:#16a34a;">${budgetService.toFixed(2)} €</span></li></ul></div>`;
+                }
+            });
+            if(emptyDay) dayHtml += `<p style="font-size:0.85rem; color:#94a3b8; font-style:italic;">Aucune commande.</p>`;
+            dayHtml += `</div>`; dashboardContainer.innerHTML += dayHtml;
+        });
+
+        updateGlobalAbsentsLists();
+        renderDetailsAndAbsents();
+        populateSecurityDropdowns();
+        populateMenuEditSelector();
+    }
+
+    function renderDetailsAndAbsents() {
+        if(currentRole !== "admin") return;
+
+        const groupFilter = document.getElementById('detGroupFilter').value;
+        const personFilter = document.getElementById('detPersonFilter').value;
+        const periodFilter = document.getElementById('detPeriodFilter').value;
+        const serviceFilter = document.getElementById('detServiceFilter').value;
+        const tableBody = document.getElementById('detailsTableBody');
+        const absentsContainer = document.getElementById('absentsContainer');
+        const printTitle = document.getElementById('printDetailsTitle');
+
+        tableBody.innerHTML = '';
+        absentsContainer.innerHTML = '';
+
+        let strGroupe = groupFilter === "Tous" ? "Team & Staff" : groupFilter;
+        if (personFilter !== "Tous") strGroupe = personFilter;
+
+        if(periodFilter === 'Totalite') {
+            printTitle.innerText = `Rapport Nominatif (${strGroupe}) — Totalité du Séjour`;
+        } else {
+            printTitle.innerText = `Rapport Nominatif (${strGroupe}) — ${periodFilter} (Service : ${serviceFilter})`;
+        }
+
+        if (periodFilter !== "Totalite" && personFilter === "Tous") {
+            let nonVotantsStrings = [];
+
+            participantsList.forEach(p => {
+                let nameClean = p.name.trim();
+                let roleClean = p.role;
+                if(nameClean === "") return;
+
+                if (groupFilter !== "Tous" && roleClean !== groupFilter) return;
+
+                let mismatchMidi = !appVotes.some(v => v.name.toLowerCase() === nameClean.toLowerCase() && v.day === periodFilter && v.period === "Midi");
+                let mismatchSoir = !appVotes.some(v => v.name.toLowerCase() === nameClean.toLowerCase() && v.day === periodFilter && v.period === "Soir");
+
+                if (serviceFilter === "Tous") {
+                    if (mismatchMidi && mismatchSoir) {
+                        nonVotantsStrings.push(`${nameClean} [${roleClean}] (Manque : Midi et Soir)`);
+                    } else if (mismatchMidi) {
+                        nonVotantsStrings.push(`${nameClean} [${roleClean}] (Manque : Midi)`);
+                    } else if (mismatchSoir) {
+                        nonVotantsStrings.push(`${nameClean} [${roleClean}] (Manque : Soir)`);
+                    }
+                } 
+                else if (serviceFilter === "Midi" && mismatchMidi) {
+                    nonVotantsStrings.push(`${nameClean} [${roleClean}] (Manque : Midi)`);
+                } 
+                else if (serviceFilter === "Soir" && mismatchSoir) {
+                    nonVotantsStrings.push(`${nameClean} [${roleClean}] (Manque : Soir)`);
+                }
+            });
+
+            if (nonVotantsStrings.length > 0) {
+                let absHtml = `
+                    <div class="absents-box">
+                        <div class="absents-title">⚠️ Pas de commande le ${periodFilter} : <span>Total : ${nonVotantsStrings.length}</span></div>
+                        <ul class="absents-list">
+                `;
+                nonVotantsStrings.forEach(n => { absHtml += `<li>❌ ${n}</li>`; });
+                absHtml += `</ul></div>`;
+                absentsContainer.innerHTML = absHtml;
+            } else {
+                absentsContainer.innerHTML = `<div class="absents-box" style="background:#f0fdf4; border-color:#bbf7d0; color:#166534;"><div class="absents-title" style="color:#166534;">🎉 Tout le monde a commandé !</div></div>`;
+            }
+        } else if (personFilter === "Tous") {
+            absentsContainer.innerHTML = `<div class="absents-box" style="background: #e2e8f0; border-color: #cbd5e1; color: #475569;"><div class="absents-title" style="color: #475569;">💡 Mode d'emploi</div><p style="font-size:0.85rem; font-style:italic;">Sélectionnez un jour spécifique pour lister les absents.</p></div>`;
+        } else {
+            absentsContainer.innerHTML = `<div class="absents-box" style="background: #e2e8f0; border-color: #cbd5e1; color: #475569;"><div class="absents-title" style="color: #475569;">🎯 Focus ciblé</div><p style="font-size:0.85rem; font-style:italic;">Recherche nominative active sur un seul profil.</p></div>`;
+        }
+
+        participantsList.forEach(p => {
+            let nameClean = p.name.trim();
+            let roleClean = p.role;
+            if(nameClean === "") return;
+
+            if (groupFilter !== "Tous" && roleClean !== groupFilter) return;
+            if (personFilter !== "Tous" && nameClean !== personFilter) return;
+
+            let filteredOrders = appVotes.filter(v => {
+                if (v.name.toLowerCase() !== nameClean.toLowerCase()) return false;
+                if (periodFilter !== "Totalite" && v.day !== periodFilter) return false;
+                if (periodFilter !== "Totalite" && serviceFilter !== "Tous" && v.period !== serviceFilter) return false;
+                return true;
+            });
+
+            let trackingText = "";
+            let totalPrice = 0;
+
+            if (filteredOrders.length === 0) {
+                trackingText = `<span style="color:#94a3b8; font-style:italic;">Aucune commande sur cette période.</span>`;
+            } else {
+                let listStrings = filteredOrders.map(o => {
+                    let dataPlat = helperObtenirPrixEtConfigPlat(o.day, o.period, o.mealName);
+                    totalPrice += dataPlat.prix;
+                    let extraRemarks = o.remarks ? ` <small style="color:var(--warning-text); font-weight:600;">(⚠️ ${o.remarks})</small>` : '';
+                    return `<b>${o.day}</b>-${o.period[0]} <span style="color:#64748b;">[${dataPlat.type}]</span> ${o.mealName}${extraRemarks}`;
+                });
+                trackingText = listStrings.join(' / ');
+            }
+
+            let roleBadgeClass = roleClean === "Staff" ? "badge-staff" : "badge-team";
+
+            let row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <strong>${nameClean}</strong>
+                    <span class="badge-role ${roleBadgeClass}">${roleClean}</span>
+                </td>
+                <td>${trackingText}</td>
+                <td class="text-right"><span class="badge-total">${totalPrice.toFixed(2)} €</span></td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function generatePrintSheets() {
+        const orgDay = document.getElementById('orgDaySelect').value;
+        const orgPeriod = document.getElementById('orgPeriodSelect').value;
+        const printableArea = document.getElementById('printableArea');
+        printableArea.innerHTML = '';
+        const currentConfig = foodTrucksData[orgDay][orgPeriod];
+        if(!currentConfig || !currentConfig.trucks) return;
+
+        currentConfig.trucks.forEach(truck => {
+            let sheetHtml = `<div class="print-sheet"><div class="print-header"><div class="print-truck-title">🎪 FOOD TRUCK : ${truck.name}</div><div class="print-day-sub">🗓️ ${orgDay} — Service du ${orgPeriod}</div></div>`;
+            currentConfig.hours.forEach((serviceHour) => {
+                const currentOrders = appVotes.filter(v => v.day === orgDay && v.time === serviceHour && v.truckName === truck.name);
+                sheetHtml += `<div class="print-service-section"><div class="print-service-title"><span>📌 SERVICE DE ${serviceHour}</span><span>Total : ${currentOrders.length} article(s)</span></div>`;
+                if(currentOrders.length === 0) {
+                    sheetHtml += `<p style="color:#94a3b8; font-style:italic; padding:0.5rem 0;">Aucune commande pour ce service.</p>`;
+                } else {
+                    ["Entrée", "Plat", "Dessert"].forEach(typeLabel => {
+                        const mealsOfThisType = truck.meals.filter(m => (m.type || "Plat") === typeLabel);
+                        let hasOrdersInCat = mealsOfThisType.some(m => currentOrders.some(o => o.mealName === m.name));
+                        if(hasOrdersInCat) {
+                            sheetHtml += `<div style="background:#f8fafc; padding:0.4rem; font-weight:bold; margin: 1rem 0 0.5rem 0; font-size:0.9rem; text-transform:uppercase; border-left:3px solid var(--primary);">${typeLabel}s</div>`;
+                            mealsOfThisType.forEach(meal => {
+                                const mealOrders = currentOrders.filter(o => o.mealName === meal.name);
+                                if(mealOrders.length > 0) {
+                                    let compHtml = meal.composition ? `<br><span style="font-size:0.8rem; font-style:italic; color:#475569;">(${meal.composition})</span>` : '';
+                                    sheetHtml += `<div class="print-meal-row"><div class="print-meal-name" style="font-weight:600;">🍽️ ${meal.name} ${compHtml}<span class="print-meal-qty" style="float:right;">x ${mealOrders.length}</span></div>`;
+                                    const allergies = mealOrders.filter(o => o.remarks !== '').map(o => `<strong>${escapeHtml(o.name)}</strong> : ${escapeHtml(o.remarks)}`);
+                                    if(allergies.length > 0) {
+                                        sheetHtml += `<ul class="print-allergies-list">`;
+                                        allergies.forEach(item => { sheetHtml += `<li>⚠️ ${item}</li>`; });
+                                        sheetHtml += `</ul>`;
+                                    }
+                                    sheetHtml += `</div>`;
+                                }
+                            });
+                        }
+                    });
+                }
+                sheetHtml += `</div>`;
+            });
+            sheetHtml += `<button type="button" class="print-inline-btn" onclick="triggerSectionPrint('organizer')">🖨️ Imprimer uniquement ce Food Truck</button></div>`;
+            printableArea.innerHTML += sheetHtml;
+        });
+    }
+
+    function triggerSectionPrint(targetName) {
+        document.body.className = `mode-admin print-active-${targetName}`;
+        window.print();
+        setTimeout(() => { document.body.className = "mode-admin"; }, 600);
+    }
+
+    function exportCalculatedCSV() {
+        if(appVotes.length === 0) { alert("Aucune donnée."); return; }
+        let csvContent = "\uFEFF"; csvContent += "=== RESUME QUANTITATIF ===\nJour;Service;Camion;Plat;Quantite\n";
+        const summary = {};
+        appVotes.forEach(v => { const key = `${v.day};${v.time};${v.truckName};${v.mealName}`; summary[key] = (summary[key] || 0) + 1; });
+        for (let k in summary) { csvContent += `${k};${summary[k]}\n`; }
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob); const link = document.createElement("a");
+        link.setAttribute("href", url); link.setAttribute("download", "recap_commandes.csv");
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function verifierMotDePasseAdmin() {
+        const input = prompt("🔐 Action critique. Saisissez le mot de passe administrateur pour confirmer :");
+        return input === ADMIN_PASSWORD;
+    }
+
+    function clearAllReservations() {
+        if (!verifierMotDePasseAdmin()) { alert("❌ Mot de passe erroné ou action annulée."); return; }
+        if (confirm("🚨 Êtes-vous sûr de vouloir supprimer L'INTÉGRALITÉ des réservations de repas effectuées par les utilisateurs ?")) {
+            appVotes = [];
+            localStorage.setItem('trucksVotesData', JSON.stringify(appVotes));
+            resetDetailsDisplay();
+            updateInterface();
+            document.getElementById('printableArea').innerHTML = '';
+            alert("✅ Toutes les réservations ont été supprimées avec succès.");
+        }
+    }
+
+    function clearAllMenus() {
+        if (!verifierMotDePasseAdmin()) { alert("❌ Mot de passe erroné ou action annulée."); return; }
+        if (confirm("🚨 ATTENTION : Vous allez effacer TOUS les Food Trucks et TOUS les menus du catalogue. Les réservations associées deviendront invalides. Confirmer ?")) {
+            foodTrucksData = {
+                "Vendredi": { "Midi": { "hours": [], "trucks": [] }, "Soir": { "hours": [], "trucks": [] } },
+                "Samedi": { "Midi": { "hours": [], "trucks": [] }, "Soir": { "hours": [], "trucks": [] } },
+                "Dimanche": { "Midi": { "hours": [], "trucks": [] }, "Soir": { "hours": [], "trucks": [] } },
+                "Lundi": { "Midi": { "hours": [], "trucks": [] }, "Soir": { "hours": [], "trucks": [] } }
+            };
+            localStorage.setItem('config_foodtrucks', JSON.stringify(foodTrucksData));
+            cancelEditing();
+            resetDetailsDisplay();
+            updateInterface();
+            alert("✅ Catalogue des menus entièrement vidé.");
+        }
+    }
+
+    function clearSingleMenu() {
+        const mealSelect = document.getElementById('deleteSingleMealSelect');
+        const targetMeal = mealSelect.value;
+        if (!targetMeal) { alert("Veuillez d'abord choisir un plat dans la liste déroulante."); return; }
+
+        const impactedPeople = Array.from(new Set(
+            appVotes.filter(v => v.mealName === targetMeal).map(v => v.name)
+        ));
+
+        if (!verifierMotDePasseAdmin()) { alert("❌ Mot de passe erroné ou action annulée."); return; }
+        
+        for (let day in foodTrucksData) {
+            for (let per in foodTrucksData[day]) {
+                if (foodTrucksData[day][per].trucks) {
+                    foodTrucksData[day][per].trucks.forEach(t => {
+                        t.meals = t.meals.filter(m => m.name !== targetMeal);
+                    });
+                }
+            }
+        }
+        localStorage.setItem('config_foodtrucks', JSON.stringify(foodTrucksData));
+
+        appVotes = appVotes.filter(v => v.mealName !== targetMeal);
+        localStorage.setItem('trucksVotesData', JSON.stringify(appVotes));
+
+        cancelEditing();
+        resetDetailsDisplay();
+        updateInterface();
+
+        const impactContainer = document.getElementById('deleteSingleMealImpactContainer');
+        if (impactedPeople.length > 0) {
+            impactContainer.innerHTML = `
+                <div class="inline-notification warning">
+                    <strong>💥 Plat "${targetMeal}" supprimé avec succès !</strong><br>
+                    Les réservations des participants suivants ont été nettoyées automatiquement (${impactedPeople.length}) :<br>
+                    <span style="font-size:0.85rem; font-weight:bold;">${impactedPeople.join(', ')}</span>
+                </div>
+            `;
+        } else {
+            impactContainer.innerHTML = `
+                <div class="inline-notification success">
+                    ✅ Le plat "${targetMeal}" a été retiré du catalogue (Aucun participant n'était impacté).
+                </div>
+            `;
+        }
+        mealSelect.value = "";
+    }
+
+    function clearAllParticipants() {
+        if (!verifierMotDePasseAdmin()) { alert("❌ Mot de passe erroné ou action annulée."); return; }
+        if (confirm("🚨 DANGER : Vous allez supprimer la liste complète des participants autorisés. Confirmer ?")) {
+            participantsList = [];
+            localStorage.setItem('config_participants', JSON.stringify(participantsList));
+            cancelEditing();
+            resetDetailsDisplay();
+            updateInterface();
+            alert("✅ Liste des participants entièrement vidée.");
+        }
+    }
+
+    function clearSingleParticipant() {
+        const userSelect = document.getElementById('deleteSingleUserSelect');
+        const targetUser = userSelect.value;
+        if (!targetUser) { alert("Veuillez d'abord choisir un profil dans la liste déroulante."); return; }
+
+        if (!verifierMotDePasseAdmin()) { alert("❌ Mot de passe erroné ou action annulée."); return; }
+
+        if (confirm(`Voulez-vous retirer "${targetUser}" de la liste des inscrits ? (Ses réservations de repas associées seront également nettoyées).`)) {
+            participantsList = participantsList.filter(p => p.name !== targetUser);
+            localStorage.setItem('config_participants', JSON.stringify(participantsList));
+
+            appVotes = appVotes.filter(v => v.name.toLowerCase() !== targetUser.toLowerCase());
+            localStorage.setItem('trucksVotesData', JSON.stringify(appVotes));
+
+            cancelEditing();
+            resetDetailsDisplay();
+            updateInterface();
+            alert(`✅ L'utilisateur "${targetUser}" et ses choix de repas ont été supprimés.`);
+        }
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    initParticipantsSelect();
+	
+	function addPersonManually() {
+    const nameInput = document.getElementById('newPersonName');
+    const roleInput = document.getElementById('newPersonRole');
+    const name = nameInput.value.trim();
+    const role = roleInput.value;
+
+    if (!name) {
+        alert("⚠️ Veuillez saisir un nom et un prénom.");
+        return;
+    }
+
+    // Vérifier si le nom existe déjà
+    if (participantsList.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+        alert("⚠️ Ce nom est déjà dans la liste.");
+        return;
+    }
+
+    // Ajouter à la liste
+    participantsList.push({ name: name, role: role });
+    participantsList.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Sauvegarder
+    localStorage.setItem('config_participants', JSON.stringify(participantsList));
+
+    // Mettre à jour l'interface
+    initParticipantsSelect();
+    syncDetPersonDropdown();
+    updateInterface(); // Force la mise à jour des vues administratives
+
+    // Réinitialiser le champ
+    nameInput.value = '';
+    alert(`✅ ${name} a été ajouté(e) avec succès !`);
+}
+
+function exportParticipantsCSV() {
+    let csvContent = "\uFEFFNom;Groupe\n"; // \uFEFF pour forcer l'encodage UTF-8 (accents)
+    
+    participantsList.forEach(p => {
+        csvContent += `${p.name};${p.role}\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "liste_participants.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+	
+</script>
+
+</body>
+</html>
